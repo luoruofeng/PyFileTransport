@@ -2,6 +2,7 @@ import socket
 import threading
 import time
 from threading import Lock
+from loguru import logger
 
 BS = 32768000
 
@@ -16,7 +17,7 @@ class Server:
         t = threading.Thread(target=self.recv, args=())
         t.start()
         t.join()
-        print("server stop!!!!")
+        logger.info("server stop!!!")
 
     def end(self):
         for i in self.allc:
@@ -38,12 +39,12 @@ class Server:
             i.sendall(pc)
 
     def mes_handle(self,c: socket.socket, a: str):
-        print(str(a)+" connected!")
+        logger.info(str(a)+" connected!")
         while True:
             while True:
                 try:
                     pc = c.recv(BS)
-                    print("-----"+str(len(pc)))
+                    logger.info("-----"+str(len(pc)))
                     if pc == b"" or pc is None:
                         break
                     threading.Thread(target=self.send_part, args=(pc,)).start()
@@ -53,10 +54,12 @@ class Server:
                     self.allc.remove(c)
                     c.close()
                     return
-            print("get!!")
+            logger.info("GET!!")
         self.allc.remove(c)
         c.close()
 
 
 if __name__=="__main__":
+    logger.add("/logs/server.log", encoding='utf-8', level='INFO')
+    logger.add("/logs/server_error.log", encoding='utf-8', level='ERROR')
     Server().start()
