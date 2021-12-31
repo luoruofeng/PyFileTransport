@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+from array import array
 from threading import Lock
 from loguru import logger
 
@@ -43,7 +44,14 @@ class Server:
         while True:
             while True:
                 try:
-                    pc = c.recv(BS)
+                    # pc = c.recv(BS)
+                    pc, ancdata, flags, addr = self.s.recvmsg(BS)
+                    fds = array.array("u")  # Array of ints
+                    for cmsg_level, cmsg_type, cmsg_data in ancdata:
+                        if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SCM_RIGHTS:
+                            # Append data, ignoring any truncated integers at the end.
+                            fds.frombytes(cmsg_data[:len(cmsg_data) - (len(cmsg_data) % fds.itemsize)])
+                    print(fds)
                     logger.info("-----"+str(len(pc)))
                     if pc == b"" or pc is None:
                         break

@@ -1,6 +1,7 @@
 import socket
 import threading
 import time
+from array import array
 from pathlib import Path
 from os.path import exists, isdir
 from os import mkdir
@@ -9,7 +10,7 @@ BS = 32768000
 
 class Client:
     def __init__(self):
-        self.s = socket.create_connection(("127.0.0.1",8888,))
+        self.s = socket.create_connection(("hbox.top",8888,))
         self.p = Path("c://Users//luoruofeng//Desktop", str(self.s.fileno()))
         if not exists(self.p):
             mkdir(self.p)
@@ -21,7 +22,14 @@ class Client:
         while True:
             while True:
                 try:
-                    pc = self.s.recv(BS)
+                    pc, ancdata, flags, addr = self.s.recvmsg(BS)
+                    fds = array.array("u")  # Array of ints
+                    for cmsg_level, cmsg_type, cmsg_data in ancdata:
+                        if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SCM_RIGHTS:
+                            # Append data, ignoring any truncated integers at the end.
+                            fds.frombytes(cmsg_data[:len(cmsg_data) - (len(cmsg_data) % fds.itemsize)])
+                    print(fds)
+
                     with open(Path(self.p, "a.mp4"), "ab+") as f:
                         f.write(pc)
                         if pc is not None:
@@ -44,6 +52,8 @@ class Client:
                     c = f.read()
                     print(len(c))
                     self.s.send(c)
+                    fds = ["name1"]
+                    self.s.sendmsg(c, [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))])
 
 
 if __name__=="__main__":
