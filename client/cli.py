@@ -13,6 +13,8 @@ lock = Lock()
 name = "NAME"
 size = "SIZE"
 done = "DONE"
+last = "1"
+not_last = "0"
 
 class Client:
     def __init__(self):
@@ -25,6 +27,7 @@ class Client:
     def get_file_info(self) -> tuple:
         info_byte = self.s.recv(1024)
         info_str = info_byte.decode("utf-8")
+        print(info_str)
         if "name" in info_str and "size" in info_str:
             info = loads(info_str)
             n = info["name"]
@@ -50,8 +53,11 @@ class Client:
                         if pc is not None:
                             print(str(len(pc)))
                         if getsize(target_file) >= s:
+                            self.s.send(last.encode())
                             print(f"FILE SIZE IS {getsize(target_file)}. FILE NAME:{n}. GET ALL FILE.")
                             break
+                        else:
+                            self.s.send(not_last.encode())
                 except (ConnectionError,ConnectionResetError) as e:
                     print("remote server close connection!")
                     return
@@ -70,7 +76,7 @@ class Client:
                     raise RuntimeError("file info send failed!")
                 with open(p, "rb+") as f:
                     c = f.read()
-                    print(len(c))
+                    print(f"send data:{len(c)}")
                     self.s.send(c)
             lock.release()
 
