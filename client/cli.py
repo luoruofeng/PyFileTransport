@@ -3,41 +3,55 @@ import threading
 import time
 from array import array
 from pathlib import Path
-from os.path import exists, isdir
+from os.path import exists, isdir, getsize
 from os import mkdir
+from threading import Lock
+from json import loads,dumps
 
 BS = 32768000
+lock = Lock()
+name = "NAME"
+size = "SIZE"
+done = "DONE"
 
 class Client:
     def __init__(self):
-        self.s = socket.create_connection(("hbox.top",8888,))
+        self.s = socket.create_connection(("127.0.0.1",8888,))
         self.p = Path("c://Users//luoruofeng//Desktop", str(self.s.fileno()))
         if not exists(self.p):
             mkdir(self.p)
         threading.Thread(target=self.recv, args=()).start()
 
+    def get_file_info(self) -> tuple:
+        info_byte = self.s.recv(1024)
+        info_str = info_byte.decode("utf-8")
+        if "name" in info_str and "size" in info_str:
+            info = loads(info_str)
+            n = info["name"]
+            s = info["size"]
+            return (n, s,)
+        else:
+            raise RuntimeError("info wrong!")
+
 
     def recv(self):
-        pass
         while True:
+            n, s = self.get_file_info()
             while True:
                 try:
-                    pc, ancdata, flags, addr = self.s.recvmsg(BS)
-                    fds = array.array("u")  # Array of ints
-                    for cmsg_level, cmsg_type, cmsg_data in ancdata:
-                        if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SCM_RIGHTS:
-                            # Append data, ignoring any truncated integers at the end.
-                            fds.frombytes(cmsg_data[:len(cmsg_data) - (len(cmsg_data) % fds.itemsize)])
-                    print(fds)
-
-                    with open(Path(self.p, "a.mp4"), "ab+") as f:
+                    pc = self.s.recv(BS)
+                    if len(pc) <= 0:
+                        print("remote server close connection!")
+                        return
+                    target_file = Path(self.p, n)
+                    with open(target_file, "ab+") as f:
                         f.write(pc)
+                        f.flush()
                         if pc is not None:
                             print(str(len(pc)))
-                    if pc == b"" or pc is None or len(pc) < BS:
-                        if pc is not None:
-                            print("*")
-                        break
+                        if getsize(target_file) >= s:
+                            print(f"FILE SIZE IS {getsize(target_file)}. FILE NAME:{n}. GET ALL FILE.")
+                            break
                 except (ConnectionError,ConnectionResetError) as e:
                     print("remote server close connection!")
                     return
@@ -45,16 +59,20 @@ class Client:
 
     def start(self):
         while True:
-            content = input("input:")
+            content = input("input:\n")
+            lock.acquire()
             p = Path(content)
             if exists(p) and not isdir(p):
+                info = {"name": p.name,"size": getsize(p)}
+                self.s.send(dumps(info).encode("utf-8"))
+                first_resp = self.s.recv(1024).decode("utf-8")
+                if first_resp != done:
+                    raise RuntimeError("file info send failed!")
                 with open(p, "rb+") as f:
                     c = f.read()
                     print(len(c))
                     self.s.send(c)
-                    fds = ["name1"]
-                    self.s.sendmsg(c, [(socket.SOL_SOCKET, socket.SCM_RIGHTS, array.array("i", fds))])
-
+            lock.release()
 
 if __name__=="__main__":
     Client().start()

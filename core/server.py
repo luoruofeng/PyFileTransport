@@ -4,13 +4,15 @@ import time
 from array import array
 from threading import Lock
 from loguru import logger
+from json import loads
 
+done = "DONE"
 BS = 32768000
 
 class Server:
     def __init__(self):
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.allc = []
+        self.addr_cs = {}
 
     def start(self):
         self.s.bind(("0.0.0.0", 8888,))
@@ -30,38 +32,52 @@ class Server:
     def recv(self):
         while True:
             c, a = self.s.accept()
-            self.allc.append(c)
+            self.addr_cs[a] = c
             threading.Thread(target=self.mes_handle,args=(c, a,)).start()
         self.end()
 
     def send_part(self, pc):
-        time.sleep(3)
-        for i in self.allc:
-            i.sendall(pc)
+        try:
+            for addr, cs in self.addr_cs.items():
+                cs.sendall(pc)
+        except Exception as e:
+            logger.info(f"recver's connection closed! addr:{addr}")
+            raise e
+    def get_file_info(self, c: socket.socket, a: str) -> tuple:
+        info_byte = c.recv(1024)
+        info_str = info_byte.decode("utf-8")
+        if "name" in info_str and "size" in info_str:
+            for addr, cs in self.addr_cs.items():
+                if cs != c:
+                    cs.send(info_byte)
+            c.send(done)
+            info = loads(info_str)
+            name = info["name"]
+            size = info["size"]
+            return (name, size,)
+        else:
+            raise RuntimeError("info wrong!")
 
-    def mes_handle(self,c: socket.socket, a: str):
+    def mes_handle(self,c: socket.socket, a: tuple):
         logger.info(str(a)+" connected!")
         while True:
+            name, size = self.get_file_info(c, a)
             while True:
                 try:
-                    # pc = c.recv(BS)
-                    pc, ancdata, flags, addr = self.s.recvmsg(BS)
-                    fds = array.array("u")  # Array of ints
-                    for cmsg_level, cmsg_type, cmsg_data in ancdata:
-                        if cmsg_level == socket.SOL_SOCKET and cmsg_type == socket.SCM_RIGHTS:
-                            # Append data, ignoring any truncated integers at the end.
-                            fds.frombytes(cmsg_data[:len(cmsg_data) - (len(cmsg_data) % fds.itemsize)])
-                    print(fds)
-                    logger.info("-----"+str(len(pc)))
-                    if pc == b"" or pc is None:
-                        break
-                    threading.Thread(target=self.send_part, args=(pc,)).start()
-                    if len(pc) < BS:
-                        break
+                    pc = c.recv(BS)
                 except Exception as err:
-                    self.allc.remove(c)
+                    #TODO 发送人 断开 需要告诉其他人 不用接收了 可以删除刚才的或者什么都不做
+                    del self.addr_cs[a]
                     c.close()
                     return
+                try:
+                    t = threading.Thread(target=self.send_part, args=(pc,))
+                    t.start()
+                    t.join()
+                    #TODO 这样写代码还是有纰漏 因为send_part没有全部发送就会执行join
+                except:
+                    continue
+                break
             logger.info("GET!!")
         self.allc.remove(c)
         c.close()
