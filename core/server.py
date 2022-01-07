@@ -36,8 +36,10 @@ class Server:
         self.end()
 
     def send_part(self, pc):
+        logger.info("start send_part")
         for addr, cs in self.addr_cs.items():
             try:
+                logger.info(str(addr))
                 cs.sendall(pc)
                 logger.info("SEND MESSAGE LENGTH " + str(len(pc)) + " TO " + str(addr))
             except Exception as e:
