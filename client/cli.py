@@ -19,8 +19,6 @@ class Client:
         if not exists(self.tp):
             mkdir(self.tp)
         threading.Thread(target=self.recv, args=()).start()
-        print("CLOSE CONNECTION!!!!")
-        self.s.close()
 
 
     def check_first_chunk(self, content: bytes) -> tuple:
@@ -77,8 +75,10 @@ class Client:
                         print(f"FILE SIZE IS {getsize(target_file)}. FILE NAME:{name}. GET ALL FILE.")
             except (ConnectionError,ConnectionResetError) as e:
                 print("CONNECTION OF REMOTE SERVER FAILED!")
+                print(e)
                 return
         print("DONE!")
+        self.s.close()
 
 
     def get_send_size(self, data):
