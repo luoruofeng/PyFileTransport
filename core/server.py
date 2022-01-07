@@ -39,6 +39,7 @@ class Server:
         for addr, cs in self.addr_cs.items():
             try:
                 cs.sendall(pc)
+                logger.info("SEND MESSAGE LENGTH " + str(len(pc)) + " TO " + str(addr))
             except Exception as e:
                 logger.info(f"CONNECTION OF RECEVER IS CLOSED! ADDR:{addr}")
                 self.lose_conn(cs, addr)
@@ -55,6 +56,7 @@ class Server:
         while True:
             try:
                 pc = c.recv(BS, socket.MSG_WAITALL)
+                logger.info("SEND MESSAGE LENGTH "+str(len(pc))+ " FROM " + str(a))
             except (ConnectionError, ConnectionResetError) as e:
                 self.lose_conn(c, a)
                 return

@@ -14,7 +14,7 @@ TARGET_DIR = "c://Users//luoruofeng//Desktop"
 
 class Client:
     def __init__(self):
-        self.s = socket.create_connection(("127.0.0.1",8888,))
+        self.s = socket.create_connection(("hbox.top",8888,))
         self.tp = Path(TARGET_DIR, str(self.s.fileno()))
         if not exists(self.tp):
             mkdir(self.tp)
