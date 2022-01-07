@@ -46,13 +46,16 @@ class Server:
                 logger.info(f"CONNECTION OF RECEVER IS CLOSED! ADDR:{addr}")
                 logger.error(e)
                 self.lose_conn(cs, addr)
+                logger.info("123")
                 continue
 
     def lose_conn(self, cs, addr):
         logger.info(f"LOSE CONNECTION! ADDR:{addr}")
         if addr in self.addr_cs:
             del self.addr_cs[addr]
+        logger.info(f"1closed client! "+str(addr))
         cs.close()
+        logger.info(f"2closed client! "+str(addr))
 
     def mes_handle(self,c: socket.socket, a: tuple):
         logger.info(str(a)+" HAVE CONNECTED!")
