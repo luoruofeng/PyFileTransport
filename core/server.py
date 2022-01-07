@@ -42,6 +42,7 @@ class Server:
                 logger.info("SEND MESSAGE LENGTH " + str(len(pc)) + " TO " + str(addr))
             except Exception as e:
                 logger.info(f"CONNECTION OF RECEVER IS CLOSED! ADDR:{addr}")
+                logger.error(e)
                 self.lose_conn(cs, addr)
                 continue
 
@@ -58,6 +59,7 @@ class Server:
                 pc = c.recv(BS, socket.MSG_WAITALL)
                 logger.info("SEND MESSAGE LENGTH "+str(len(pc))+ " FROM " + str(a))
             except (ConnectionError, ConnectionResetError) as e:
+                logger.error(e)
                 self.lose_conn(c, a)
                 return
             self.send_part(pc)
