@@ -36,7 +36,7 @@ class Server:
         self.end()
 
     def send_part(self, pc):
-        logger.info("start send_part")
+        logger.info("start send_part. munber:"+str(self.addr_cs))
         for addr, cs in self.addr_cs.items():
             try:
                 logger.info(str(addr))
