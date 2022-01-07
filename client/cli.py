@@ -19,6 +19,9 @@ class Client:
         if not exists(self.tp):
             mkdir(self.tp)
         threading.Thread(target=self.recv, args=()).start()
+        print("CLOSE CONNECTION!!!!")
+        self.s.close()
+
 
     def check_first_chunk(self, content: bytes) -> tuple:
         r = re.compile(b"^{.*name.*size.*}").match(content)
@@ -28,7 +31,7 @@ class Client:
         if not head:
             return None
         data = content[HEAD_LEN:]
-        info = loads(head.decode())
+        info = loads(head.decode("utf-8"))
         name = info["name"]
         size = info["size"]
         return (name, size, data)
