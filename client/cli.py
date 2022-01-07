@@ -34,6 +34,18 @@ class Client:
         return (name, size, data)
 
 
+    def get_pure_data(self,data):
+        print("start pure")
+        if data.endswith(b"\x00"):
+            print("start pure2")
+            empty_index = re.search(b"\x00+$", data).span()[0]
+            print(data)
+            data = data[:empty_index]
+            print(data)
+            return data
+
+
+
     def recv(self):
         name, size = None, None
         while True:
@@ -45,8 +57,14 @@ class Client:
                 head = self.check_first_chunk(data)
                 if head is not None:
                     name, size, data = head[0], head[1], head[2]
+                if not name:
+                    print("TOO LATE TO ACCEPT DATA!")
+                    return
                 target_file = Path(self.tp, name)
                 with open(target_file, "ab+") as f:
+                    if getsize(target_file) + HEAD_LEN + BS >= size:
+                        # this is latest chunk
+                        data = self.get_pure_data(data)
                     f.write(data)
                     f.flush()
                     if data is not None:
