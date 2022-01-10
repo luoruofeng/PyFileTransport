@@ -42,23 +42,19 @@ class Server:
         logger.info("start send_part. munber:"+str(self.addr_cs))
         for addr, cs in self.addr_cs.items():
             try:
-                logger.info(str(addr))
                 cs.sendall(pc)
                 logger.info("SEND MESSAGE LENGTH " + str(len(pc)) + " TO " + str(addr))
             except Exception as e:
                 logger.info(f"CONNECTION OF RECEVER IS CLOSED! ADDR:{addr}")
                 logger.error(e)
                 self.lose_conn(cs, addr)
-                logger.info("123")
                 continue
 
     def lose_conn(self, cs, addr):
         logger.info(f"LOSE CONNECTION! ADDR:{addr}")
         if addr in self.addr_cs:
             del self.addr_cs[addr]
-        logger.info(f"1closed client! "+str(addr))
         cs.close()
-        logger.info(f"2closed client! "+str(addr))
 
 
     def rate_of_progress(self,current_size,totol_size) -> float:
