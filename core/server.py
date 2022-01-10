@@ -5,9 +5,12 @@ from array import array
 from threading import Lock
 from loguru import logger
 from json import loads
+import re
+
 
 done = "DONE"
 BS = 1024
+HEAD_LEN = 256
 
 class Server:
     def __init__(self):
@@ -57,11 +60,36 @@ class Server:
         cs.close()
         logger.info(f"2closed client! "+str(addr))
 
+
+    def rate_of_progress(self,current_size,totol_size) -> float:
+        current_size += BS
+        return (current_size/totol_size *100 , current_size,)
+
+
+    def check_first_chunk(self, content: bytes) -> tuple:
+        r = re.compile(b"^{.*name.*size.*}").match(content)
+        if r == None:
+            return None
+        head = r.group(0)
+        if not head:
+            return None
+        info = loads(head.decode("utf-8"))
+        name = info["name"]
+        size = info["size"]
+        return (name, size)
+
+
     def mes_handle(self,c: socket.socket, a: tuple):
         logger.info(str(a)+" HAVE CONNECTED!")
+        name, size, current_size= None, None, None
         while True:
             try:
                 pc = c.recv(BS, socket.MSG_WAITALL)
+                head = self.check_first_chunk(pc)
+                if head:
+                    name, size, current_size = head[0], head[1], 0
+                rate, current_size = self.rate_of_progress(current_size, size)
+                logger.info("RECEIVE FILE:"+name+". DATA RATE OF PROGRESS:"+str(rate)+"%")
                 logger.info("SEND MESSAGE LENGTH "+str(len(pc))+ " FROM " + str(a))
             except (ConnectionError, ConnectionResetError) as e:
                 logger.error(e)

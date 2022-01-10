@@ -14,7 +14,7 @@ TARGET_DIR = "c://Users//luoruofeng//Desktop"
 
 class Client:
     def __init__(self):
-        self.s = socket.create_connection(("hbox.top",8888,))
+        self.s = socket.create_connection(("127.0.0.1",8888,))
         self.tp = Path(TARGET_DIR, str(self.s.fileno()))
         if not exists(self.tp):
             mkdir(self.tp)
@@ -46,9 +46,13 @@ class Client:
             return data
 
 
+    def rate_of_progress(self,current_size,totol_size) -> float:
+        current_size += BS
+        return (current_size/totol_size *100, current_size, )
+
 
     def recv(self):
-        name, size = None, None
+        name, size, current_size = None, None, None
         while True:
             try:
                 data = self.s.recv(BS, socket.MSG_WAITALL)
@@ -57,10 +61,12 @@ class Client:
                     return
                 head = self.check_first_chunk(data)
                 if head is not None:
-                    name, size, data = head[0], head[1], head[2]
+                    name, size, data, current_size = head[0], head[1], head[2], 0
                 if not name:
                     print("TOO LATE TO ACCEPT DATA!")
                     return
+                rate, current_size = self.rate_of_progress(current_size, size)
+                print("FILE: " + name + " .RATE OF PROGRESS is "+str(rate)+"%")
                 target_file = Path(self.tp, name)
                 with open(target_file, "ab+") as f:
                     if getsize(target_file) + HEAD_LEN + BS >= size:
@@ -105,7 +111,7 @@ class Client:
                     send_size = self.get_send_size(data)
                     head = self.get_head(p, send_size)
                     content = self.content(head, data, send_size)
-                    print(f"SEND SIZE:{len(content)},HEAD SIZE:{len(head)} FIZE SIZE{len(data)}:")
+                    print(f"SEND SIZE:{len(content)},HEAD SIZE:{len(head)} FIZE SIZE:{len(data)}:")
                     self.s.sendall(content)
 
 if __name__=="__main__":
