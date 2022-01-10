@@ -40,7 +40,8 @@ class Server:
 
     def send_part(self, pc):
         logger.info("start send_part. munber:"+str(self.addr_cs))
-        for addr, cs in self.addr_cs.items():
+        for addr in list(self.addr_cs.keys()):
+            cs = self.addr_cs[addr]
             try:
                 cs.sendall(pc)
                 logger.info("SEND MESSAGE LENGTH " + str(len(pc)) + " TO " + str(addr))
@@ -54,7 +55,9 @@ class Server:
         logger.info(f"LOSE CONNECTION! ADDR:{addr}")
         if addr in self.addr_cs:
             del self.addr_cs[addr]
+        logger.info("-1")
         cs.close()
+        logger.info("-2")
 
 
     def rate_of_progress(self,current_size,totol_size) -> float:
